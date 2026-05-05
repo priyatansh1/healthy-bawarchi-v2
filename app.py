@@ -630,7 +630,7 @@ else:
     _share_body = "Scan the QR with any phone, or copy the link to send to family."
 
 st.markdown('<div class="hb-card">', unsafe_allow_html=True)
-share_col1, share_col2 = st.columns([1, 2.2], gap="medium")
+share_col1, share_col2 = st.columns([0.55, 3.45], gap="medium")
 with share_col1:
     try:
         st.image("healthy_bawarchi_qr_only.png", use_container_width=True)
