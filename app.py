@@ -19,7 +19,7 @@ st.set_page_config(
     page_title="Healthy Bawarchi — Smart Recipe Generator",
     page_icon="🥗",
     layout="centered",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
 
@@ -226,7 +226,7 @@ st.markdown(f"""
 
 
 # ─────────────────────────────────────────────
-# SIDEBAR — Settings + Seasonal Awareness
+# SIDEBAR — Settings / About / Disclaimer
 # ─────────────────────────────────────────────
 with st.sidebar:
     st.markdown(f"### 🌿 {t('sidebar_settings')}")
@@ -234,45 +234,6 @@ with st.sidebar:
     st.markdown(t("sidebar_about"))
     st.markdown("---")
     st.caption(t("sidebar_disclaimer"))
-    st.markdown("---")
-
-    # ── In Season Now block ─────────────────
-    sb_lang = get_lang()
-    sb_cuisine = st.session_state.get("selected_cuisine", "Pakistani")
-
-    if sb_lang == "ur":
-        ss_header = "🌱 ابھی موسم میں"
-        ss_subhead = f"{month_name(lang='ur')} میں {sb_cuisine} کھانوں کے لیے تازہ"
-        ss_tip = "موسمی پیداوار کھانا زیادہ تازہ، سستا اور ماحول کے لیے بہتر ہے۔"
-    else:
-        ss_header = "🌱 In Season Now"
-        ss_subhead = f"Fresh in {month_name(lang='en')} for {sb_cuisine} cuisine"
-        ss_tip = "Cooking with seasonal produce is fresher, cheaper, and uses less energy to grow and ship."
-
-    st.markdown(f"### {ss_header}")
-    st.caption(ss_subhead)
-
-    season_items = in_season(sb_cuisine, max_items=6)
-    if season_items:
-        for item in season_items:
-            star = "⭐ " if item["peak"] else "• "
-            if sb_lang == "ur" and item.get("ur"):
-                line = f"{star}**{item['ur']}** ({item['en']})"
-            else:
-                line = f"{star}**{item['en']}**"
-                if item.get("ur"):
-                    line += f"  ·  {item['ur']}"
-            st.markdown(line)
-
-        st.markdown(
-            f'<div style="margin-top:0.8rem; padding:0.6rem 0.8rem; '
-            f'background:#E8F5E9; border-left:3px solid #2E7D32; '
-            f'border-radius:6px; font-size:0.82rem; color:#1B5E20; '
-            f'font-style:italic;">💡 {ss_tip}</div>',
-            unsafe_allow_html=True,
-        )
-    else:
-        st.caption("—")
 
 
 # ─────────────────────────────────────────────
@@ -298,6 +259,64 @@ cuisine_display = st.radio(
 )
 cuisine = cuisine_options[cuisine_display]
 st.session_state["selected_cuisine"] = cuisine
+
+st.markdown("</div>", unsafe_allow_html=True)
+
+
+# ─────────────────────────────────────────────
+# IN SEASON NOW — main-page card (mobile-friendly)
+# ─────────────────────────────────────────────
+_lang = get_lang()
+if _lang == "ur":
+    _ss_header = "🌱 ابھی موسم میں"
+    _ss_subhead = f"{month_name(lang='ur')} میں {cuisine} کھانوں کے لیے تازہ"
+    _ss_tip = "موسمی پیداوار کھانا زیادہ تازہ، سستا اور ماحول کے لیے بہتر ہے۔"
+else:
+    _ss_header = "🌱 In Season Now"
+    _ss_subhead = f"Fresh in {month_name(lang='en')} for {cuisine} cuisine"
+    _ss_tip = "Cooking with seasonal produce is fresher, cheaper, and uses less energy to grow and ship."
+
+st.markdown(
+    f'<div class="section-card"><div class="section-title">{_ss_header}</div>',
+    unsafe_allow_html=True,
+)
+st.caption(_ss_subhead)
+
+_season_items = in_season(cuisine, max_items=8)
+if _season_items:
+    # Build horizontally-scrolling pill chips so the strip works on mobile
+    _chips_html = []
+    for _it in _season_items:
+        _star = "⭐ " if _it["peak"] else ""
+        if _lang == "ur" and _it.get("ur"):
+            _label = f"{_star}{_it['ur']}"
+        else:
+            _label = f"{_star}{_it['en']}"
+            if _it.get("ur"):
+                _label += f" · {_it['ur']}"
+        _bg = "#E8F5E9" if _it["peak"] else "#F1F8E9"
+        _border = "#2E7D32" if _it["peak"] else "#A5D6A7"
+        _chips_html.append(
+            f'<span style="display:inline-block; background:{_bg}; '
+            f'color:#1B5E20; border:1px solid {_border}; '
+            f'border-radius:20px; padding:0.35rem 0.85rem; margin:0.2rem 0.3rem 0.2rem 0; '
+            f'font-size:0.92rem; font-weight:600; white-space:nowrap;">{_label}</span>'
+        )
+
+    st.markdown(
+        f'<div style="overflow-x:auto; padding:0.4rem 0; -webkit-overflow-scrolling:touch;">'
+        f'<div style="display:flex; flex-wrap:wrap;">{"".join(_chips_html)}</div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        f'<div style="margin-top:0.6rem; padding:0.5rem 0.8rem; '
+        f'background:#E8F5E9; border-left:3px solid #2E7D32; '
+        f'border-radius:6px; font-size:0.85rem; color:#1B5E20; '
+        f'font-style:italic;">💡 {_ss_tip}</div>',
+        unsafe_allow_html=True,
+    )
 
 st.markdown("</div>", unsafe_allow_html=True)
 
