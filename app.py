@@ -263,26 +263,7 @@ else:
     _stat_recipes = "meals planned"
 
 st.markdown(
-    f'<div class="hb-hero">'
-    f'<div class="hb-brand">'
-    f'<div class="hb-brand-mark">HB</div>'
-    f'<div>'
-    f'<div class="hb-brand-text-en">Healthy Bawarchi</div>'
-    f'<div class="hb-brand-text-ur">{_hero_eyebrow_ur}</div>'
-    f'</div></div>'
-    f'{_hero_title_html}'
-    f'<div class="hb-hero-sub">{_hero_sub}</div>'
-    f'<div class="hb-stats">'
-    f'<div class="hb-stat">'
-    f'<div class="hb-stat-number">{_visits}</div>'
-    f'<div class="hb-stat-label">{_stat_visits}</div>'
-    f'</div>'
-    f'<div class="hb-stat">'
-    f'<div class="hb-stat-number accent">{_recipes}</div>'
-    f'<div class="hb-stat-label">{_stat_recipes}</div>'
-    f'</div>'
-    f'</div>'
-    f'</div>',
+    f'<div class="hb-hero"><div class="hb-brand"><div class="hb-brand-mark">HB</div><div><div class="hb-brand-text-en">Healthy Bawarchi</div><div class="hb-brand-text-ur">{_hero_eyebrow_ur}</div></div></div>{_hero_title_html}<div class="hb-hero-sub">{_hero_sub}</div><div class="hb-stats"><div class="hb-stat"><div class="hb-stat-number">{_visits}</div><div class="hb-stat-label">{_stat_visits}</div></div><div class="hb-stat"><div class="hb-stat-number accent">{_recipes}</div><div class="hb-stat-label">{_stat_recipes}</div></div></div></div>',
     unsafe_allow_html=True,
 )
 
@@ -302,6 +283,377 @@ with st.sidebar:
 # CUISINE SELECTOR
 # ─────────────────────────────────────────────
 st.markdown(
-    f'<div class="hb-card"><div class="hb-card-head">'
-    f'<div class="hb-card-title">{t("choose_cuisine")}</div>'
-    f'<
+    f'<div class="hb-card"><div class="hb-card-head"><div class="hb-card-title">{t("choose_cuisine")}</div><div class="hb-card-step">step 1 of 3</div></div>',
+    unsafe_allow_html=True,
+)
+
+cuisine_options = {
+    "🇵🇰 Pakistani": "Pakistani",
+    "🇨🇳 Chinese": "Chinese",
+    "🇮🇹 Italian": "Italian",
+    "🇲🇽 Mexican": "Mexican",
+}
+cuisine_display = st.radio(
+    "Cuisine",
+    options=list(cuisine_options.keys()),
+    horizontal=True,
+    label_visibility="collapsed",
+)
+cuisine = cuisine_options[cuisine_display]
+st.session_state["selected_cuisine"] = cuisine
+
+st.markdown("</div>", unsafe_allow_html=True)
+
+
+# ─────────────────────────────────────────────
+# IN SEASON NOW — region-aware dark green hero
+# ─────────────────────────────────────────────
+# Region dropdown only matters for Pakistani cuisine
+region = st.session_state.get("selected_region", "Pakistan")
+
+if cuisine == "Pakistani":
+    if lang == "ur":
+        _ss_title = "ابھی موسم میں"
+        _ss_sub = f"{month_name(lang='ur')} میں {region_label(region, 'ur')} کے لیے تازہ"
+        _ss_tip = "موسمی پیداوار کھانا زیادہ تازہ، سستا اور ماحول کے لیے بہتر ہے۔"
+        _ss_pill = "تازہ"
+        _region_lbl = "علاقہ:"
+    else:
+        _ss_title = f"In season this {month_name(lang='en')}"
+        _ss_sub = f"For {region_label(region, 'en')}"
+        _ss_tip = "Cooking with what's in season is fresher, cheaper, and uses less energy to grow and ship."
+        _ss_pill = "FRESH NOW"
+        _region_lbl = "Region:"
+else:
+    if lang == "ur":
+        _ss_title = "ابھی موسم میں"
+        _ss_sub = f"{month_name(lang='ur')} میں {cuisine} کھانوں کے لیے تازہ"
+        _ss_tip = "موسمی پیداوار کھانا زیادہ تازہ، سستا اور ماحول کے لیے بہتر ہے۔"
+        _ss_pill = "تازہ"
+    else:
+        _ss_title = f"In season this {month_name(lang='en')}"
+        _ss_sub = f"For {cuisine} cuisine"
+        _ss_tip = "Cooking with what's in season is fresher, cheaper, and uses less energy to grow and ship."
+        _ss_pill = "FRESH NOW"
+
+_season_items = in_season(cuisine, max_items=8, region=region)
+_chips = []
+for _it in _season_items:
+    _label = _it["ur"] if (lang == "ur" and _it.get("ur")) else _it["en"]
+    if _it["peak"]:
+        _chips.append(f'<span class="hb-chip-peak">{_label}</span>')
+    else:
+        _chips.append(f'<span class="hb-chip-avail">{_label}</span>')
+
+# Build seasonal card HTML (region selector inserted via Streamlit below)
+st.markdown(
+    f'<div class="hb-season"><div class="hb-season-head"><div><div class="hb-season-title">{_ss_title}</div><div class="hb-season-sub">{_ss_sub}</div></div><div class="hb-season-pill">{_ss_pill}</div></div><div class="hb-season-chips">{"".join(_chips)}</div><div class="hb-season-tip">{_ss_tip}</div></div>',
+    unsafe_allow_html=True,
+)
+
+# Region dropdown — small caption + selectbox below the seasonal card
+# (Visible only for Pakistani cuisine)
+if cuisine == "Pakistani":
+    _region_options = list_regions(lang)
+    _region_codes = [code for code, _ in _region_options]
+    _region_labels = [lbl for _, lbl in _region_options]
+    _current_idx = _region_codes.index(region) if region in _region_codes else 0
+
+    _rcol1, _rcol2 = st.columns([1, 3])
+    with _rcol1:
+        st.markdown(
+            f'<div style="padding-top:0.7rem; color:var(--ink-mute); font-size:13px;">📍 {_region_lbl}</div>',
+            unsafe_allow_html=True,
+        )
+    with _rcol2:
+        new_region_label = st.selectbox(
+            "Region",
+            options=_region_labels,
+            index=_current_idx,
+            label_visibility="collapsed",
+            key="region_select",
+        )
+        new_region_code = _region_codes[_region_labels.index(new_region_label)]
+        if new_region_code != region:
+            st.session_state["selected_region"] = new_region_code
+            st.rerun()
+
+
+# ─────────────────────────────────────────────
+# MAX INGREDIENTS
+# ─────────────────────────────────────────────
+st.markdown(
+    f'<div class="hb-card"><div class="hb-card-head"><div class="hb-card-title">{t("max_ingredients_label")}</div></div>',
+    unsafe_allow_html=True,
+)
+max_ingredients = st.slider(
+    "Max ingredients", min_value=3, max_value=10, value=5,
+    label_visibility="collapsed",
+)
+st.caption(t("max_ingredients_caption", n=max_ingredients))
+st.markdown("</div>", unsafe_allow_html=True)
+
+
+# ─────────────────────────────────────────────
+# INGREDIENT INPUT
+# ─────────────────────────────────────────────
+st.markdown(
+    f'<div class="hb-card"><div class="hb-card-head"><div class="hb-card-title">{t("what_ingredients")}</div><div class="hb-card-step">step 2 of 3</div></div>',
+    unsafe_allow_html=True,
+)
+
+tab1, tab2 = st.tabs([t("tab_type"), t("tab_photo")])
+ingredients_text = ""
+uploaded_image_bytes = None
+
+with tab1:
+    ingredients_text = st.text_area(
+        "Ingredients",
+        placeholder=t("type_placeholder"),
+        height=110,
+        label_visibility="collapsed",
+    )
+    st.caption(t("type_caption"))
+
+with tab2:
+    uploaded_file = st.file_uploader(
+        "Upload a photo of your ingredients",
+        type=["jpg", "jpeg", "png", "webp"],
+        label_visibility="collapsed",
+    )
+    if uploaded_file:
+        image = Image.open(uploaded_file)
+        st.image(image, use_container_width=True)
+        uploaded_image_bytes = uploaded_file.getvalue()
+    st.caption(t("photo_caption"))
+
+st.markdown("</div>", unsafe_allow_html=True)
+
+
+# ─────────────────────────────────────────────
+# GENERATE
+# ─────────────────────────────────────────────
+st.markdown(
+    '<div style="text-align:center;margin-top:1.5rem;">'
+    '<div class="hb-card-step" style="margin-bottom:0.75rem;">step 3 of 3</div>'
+    '</div>',
+    unsafe_allow_html=True,
+)
+generate_btn = st.button(t("generate_btn"), use_container_width=True)
+
+
+# ─────────────────────────────────────────────
+# GENERATION LOGIC
+# ─────────────────────────────────────────────
+if generate_btn:
+    has_text = bool(ingredients_text.strip())
+    has_image = uploaded_image_bytes is not None
+
+    if not has_text and not has_image:
+        st.warning(t("error_no_input"))
+        st.stop()
+
+    if has_text:
+        safety = check_ingredients(ingredients_text, cuisine)
+        if not safety["safe"]:
+            msg = safety_message(safety["category"], safety["blocked"], lang=get_lang())
+            st.error(f"🚫 {msg}")
+            st.stop()
+
+    with st.spinner(t("spinner")):
+        try:
+            if has_image:
+                detected, recipe = generate_recipe_from_image(
+                    uploaded_image_bytes, cuisine, max_ingredients
+                )
+                st.session_state["detected_ingredients"] = detected
+            else:
+                recipe = generate_recipe(ingredients_text, cuisine, max_ingredients)
+                st.session_state["detected_ingredients"] = None
+
+            usda_key = st.secrets.get("USDA_API_KEY", "")
+            nutrition = calculate_recipe_nutrition(
+                recipe.get("ingredients", []),
+                recipe.get("servings", 2),
+                usda_key,
+            )
+
+            st.session_state["recipe"] = recipe
+            st.session_state["nutrition"] = nutrition
+            record_recipe()
+
+        except Exception as e:
+            err = str(e)
+            if "api_key" in err.lower() or "authentication" in err.lower() or "401" in err:
+                st.error(t("error_api_key"))
+            elif "quota" in err.lower() or "429" in err:
+                st.error(t("error_quota"))
+            else:
+                st.error(t("error_generic", msg=err))
+            st.stop()
+
+
+# ─────────────────────────────────────────────
+# RECIPE OUTPUT
+# ─────────────────────────────────────────────
+recipe = st.session_state.get("recipe")
+nutrition = st.session_state.get("nutrition")
+detected = st.session_state.get("detected_ingredients")
+
+if recipe:
+    if detected:
+        st.markdown(
+            f'<div class="hb-detected">{t("photo_detected")}<br/>{detected}</div>',
+            unsafe_allow_html=True,
+        )
+
+    name = recipe.get("recipe_name_ur" if lang == "ur" else "recipe_name", "")
+    desc = recipe.get("description_ur" if lang == "ur" else "description", "")
+    prep = recipe.get("prep_time_min", "?")
+    cook = recipe.get("cook_time_min", "?")
+    servings = recipe.get("servings", "?")
+
+    _eyebrow = "آپ کی ترکیب" if lang == "ur" else "your recipe"
+    st.markdown(
+        f'<div class="hb-recipe"><div class="hb-recipe-head"><div class="hb-recipe-eyebrow">{_eyebrow}</div><div class="hb-recipe-title">{name}</div><div class="hb-recipe-desc">{desc}</div><div class="hb-recipe-meta"><span class="hb-recipe-meta-item">⏱ {prep} {t("min_label")} {t("prep_label")}</span><span class="hb-recipe-meta-item">🔥 {cook} {t("min_label")} {t("cook_label")}</span><span class="hb-recipe-meta-item">🍽 {servings} {t("servings_label")}</span></div></div>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown('<div style="padding:1.75rem;">', unsafe_allow_html=True)
+    col_ing, col_nut = st.columns([1.1, 0.9])
+
+    with col_ing:
+        st.markdown(
+            f'<div class="hb-recipe-section-head">{t("ingredients_header")}</div>',
+            unsafe_allow_html=True,
+        )
+        ingredients_list = recipe.get("ingredients", [])
+        total_pkr = 0
+        rows = []
+        for ing in ingredients_list:
+            item = ing.get("item_ur" if lang == "ur" else "item", "")
+            qty = ing.get("quantity", "")
+            pkr = ing.get("price_pkr", 0)
+            if isinstance(pkr, (int, float)):
+                total_pkr += pkr
+            rows.append(
+                f'<div class="hb-ing-row"><span class="hb-ing-name"><b>{item}</b> · {qty}</span><span class="hb-ing-price">PKR {pkr}</span></div>'
+            )
+        rows.append(
+            f'<div class="hb-ing-total"><span>{t("total_label")}</span><span>~PKR {total_pkr}</span></div>'
+        )
+        st.markdown("".join(rows), unsafe_allow_html=True)
+
+    with col_nut:
+        st.markdown(
+            f'<div class="hb-recipe-section-head">{t("nutrition_header")}</div>',
+            unsafe_allow_html=True,
+        )
+        if nutrition:
+            cal = nutrition.get("calories", 0)
+            prot = nutrition.get("protein", 0)
+            carbs = nutrition.get("carbs", 0)
+            fat = nutrition.get("fat", 0)
+            fiber = nutrition.get("fiber", 0)
+            src_note = format_nutrition_source_note(nutrition)
+            st.markdown(
+                f'<div class="hb-nut-grid"><div><div class="hb-nut-num">{cal}</div><div class="hb-nut-label">{t("calories_label")}</div></div><div><div class="hb-nut-num">{prot}g</div><div class="hb-nut-label">{t("protein_label")}</div></div><div><div class="hb-nut-num">{carbs}g</div><div class="hb-nut-label">{t("carbs_label")}</div></div><div><div class="hb-nut-num">{fat}g</div><div class="hb-nut-label">{t("fat_label")}</div></div><div style="grid-column:1 / -1;"><div class="hb-nut-num">{fiber}g</div><div class="hb-nut-label">{t("fiber_label")}</div></div></div><div class="hb-nut-source">{src_note}</div>',
+                unsafe_allow_html=True,
+            )
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown('<div style="padding:0 1.75rem 1rem 1.75rem;">', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="hb-recipe-section-head">{t("instructions_header")}</div>',
+        unsafe_allow_html=True,
+    )
+    steps = recipe.get("instructions_ur" if lang == "ur" else "instructions", [])
+    step_rows = []
+    for i, step in enumerate(steps, 1):
+        step_rows.append(
+            f'<div class="hb-step-row"><span class="hb-step-num">{i}</span><span class="hb-step-text">{step}</span></div>'
+        )
+    st.markdown("".join(step_rows), unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    health = recipe.get("health_tips_ur" if lang == "ur" else "health_tips", "")
+    sustain = recipe.get("sustainability_tip_ur" if lang == "ur" else "sustainability_tip", "")
+    serving = recipe.get("serving_suggestions_ur" if lang == "ur" else "serving_suggestions", "")
+    closing = recipe.get("closing_remark", "")
+
+    if health:
+        st.markdown(
+            f'<div class="hb-callout green"><b>{t("health_header")}:</b> {health}</div>',
+            unsafe_allow_html=True,
+        )
+    if sustain:
+        st.markdown(
+            f'<div class="hb-callout"><b>{t("sustainability_header")}:</b> {sustain}</div>',
+            unsafe_allow_html=True,
+        )
+    if serving:
+        st.markdown(
+            f'<div class="hb-callout"><b>{t("serving_header")}:</b> {serving}</div>',
+            unsafe_allow_html=True,
+        )
+    if closing:
+        st.markdown(
+            f'<div class="hb-callout"><i>{closing}</i></div>',
+            unsafe_allow_html=True,
+        )
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown('<div style="margin-top:1rem;">', unsafe_allow_html=True)
+    download_text = recipe_to_text(recipe, lang=lang)
+    st.download_button(
+        label=t("download_btn"),
+        data=download_text,
+        file_name=t("download_filename"),
+        mime="text/plain",
+        use_container_width=True,
+    )
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+# ─────────────────────────────────────────────
+# SHARE
+# ─────────────────────────────────────────────
+APP_URL = "https://healthy-bawarchi-v2-d6jvkxzb4ghgae8ae3iiyb.streamlit.app/"
+
+if lang == "ur":
+    _share_title = "ہیلتھی باورچی شیئر کریں"
+    _share_body = "اپنے فون سے کیو آر کوڈ اسکین کریں، یا نیچے دیا گیا لنک کاپی کریں۔"
+else:
+    _share_title = "Share Healthy Bawarchi"
+    _share_body = "Scan the QR with any phone, or copy the link to send to family."
+
+st.markdown('<div class="hb-card">', unsafe_allow_html=True)
+share_col1, share_col2 = st.columns([1, 2.2], gap="medium")
+with share_col1:
+    try:
+        st.image("healthy_bawarchi_qr_only.png", use_container_width=True)
+    except Exception:
+        st.caption("—")
+with share_col2:
+    st.markdown(
+        f'<div class="hb-share-text-title">{_share_title}</div><div class="hb-share-text-body">{_share_body}</div>',
+        unsafe_allow_html=True,
+    )
+    st.text_input("App link", value=APP_URL, label_visibility="collapsed")
+st.markdown('</div>', unsafe_allow_html=True)
+
+
+# ─────────────────────────────────────────────
+# FOOTER
+# ─────────────────────────────────────────────
+if lang == "ur":
+    _footer = "محبت سے بنایا گیا · OpenAI کی AI · USDA کی غذائیت · پاکستان کے لیے"
+else:
+    _footer = "Built with care · AI by OpenAI · Nutrition by USDA · Made for Pakistan"
+
+st.markdown(
+    f'<div class="hb-footer">{_footer}</div>',
+    unsafe_allow_html=True,
+)
