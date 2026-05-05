@@ -9,6 +9,7 @@ from recipe_engine import generate_recipe, generate_recipe_from_image, recipe_to
 from usda_nutrition import calculate_recipe_nutrition, format_nutrition_source_note
 from i18n import t, get_lang, inject_rtl_css, inject_ltr_css
 from seasonal import in_season, month_name
+from safety_filter import check_ingredients, get_message as safety_message
 
 
 # ─────────────────────────────────────────────
@@ -18,7 +19,7 @@ st.set_page_config(
     page_title="Healthy Bawarchi — Smart Recipe Generator",
     page_icon="🥗",
     layout="centered",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
 
@@ -376,6 +377,16 @@ if generate_btn:
     if not has_text and not has_image:
         st.warning(t("error_no_input"))
         st.stop()
+
+    # ── Safety check — runs ONLY on typed text ──────────────────
+    # (Image-based detection goes through GPT-4o vision which has
+    # its own safety; we filter the typed pathway here.)
+    if has_text:
+        safety = check_ingredients(ingredients_text, cuisine)
+        if not safety["safe"]:
+            msg = safety_message(safety["category"], safety["blocked"], lang=get_lang())
+            st.error(f"🚫 {msg}")
+            st.stop()
 
     with st.spinner(t("spinner")):
         try:
