@@ -6,15 +6,13 @@ Provides:
   • Imported / high-food-miles items and local alternatives
   • Helpers that produce sidebar text (English + Urdu) and AI-prompt context
 
+Each Pakistani item is tagged as fruit / veg / herb / grain so the sidebar
+can show a balanced mix — not just whichever items happen to come first.
+
 Data sources:
   - Pakistan Rabi/Kharif crop calendars (Agribusiness Pakistan, AARI Punjab)
   - Qurban Agro Farms seasonal fruit guide
   - Italy / China / Mexico typical produce seasonality (general references)
-
-Note: In Pakistan, transport is a smaller share of total food emissions
-(~10% globally per WEF) than what is eaten. So the imported flag here is
-informational, not alarmist — it points users toward delicious local
-alternatives rather than scolding them.
 """
 
 from datetime import datetime
@@ -22,151 +20,153 @@ from datetime import datetime
 
 # ─────────────────────────────────────────────────────────────────
 # Pakistan — month-by-month produce (1 = Jan, 12 = Dec)
-# Each item: (English, Urdu, "peak" | "available")
+# Each item: (English, Urdu, "peak" | "available", category)
+# Categories: "fruit", "veg", "herb", "grain"
 # ─────────────────────────────────────────────────────────────────
 PAKISTAN_BY_MONTH = {
     1: [
-        ("cauliflower", "گوبھی", "peak"),
-        ("spinach", "پالک", "peak"),
-        ("mustard greens", "سرسوں کا ساگ", "peak"),
-        ("carrots", "گاجر", "peak"),
-        ("turnips", "شلجم", "peak"),
-        ("peas", "مٹر", "peak"),
-        ("oranges", "مالٹا", "peak"),
-        ("kinnow", "کنو", "peak"),
-        ("guava", "امرود", "peak"),
-        ("radish", "مولی", "available"),
-        ("garlic", "لہسن", "available"),
-        ("ginger", "ادرک", "available"),
+        ("cauliflower", "گوبھی", "peak", "veg"),
+        ("spinach", "پالک", "peak", "veg"),
+        ("mustard greens", "سرسوں کا ساگ", "peak", "veg"),
+        ("carrots", "گاجر", "peak", "veg"),
+        ("turnips", "شلجم", "peak", "veg"),
+        ("peas", "مٹر", "peak", "veg"),
+        ("oranges", "مالٹا", "peak", "fruit"),
+        ("kinnow", "کنو", "peak", "fruit"),
+        ("guava", "امرود", "peak", "fruit"),
+        ("radish", "مولی", "available", "veg"),
+        ("garlic", "لہسن", "available", "herb"),
+        ("ginger", "ادرک", "available", "herb"),
     ],
     2: [
-        ("cauliflower", "گوبھی", "peak"),
-        ("spinach", "پالک", "peak"),
-        ("mustard greens", "سرسوں کا ساگ", "peak"),
-        ("peas", "مٹر", "peak"),
-        ("carrots", "گاجر", "peak"),
-        ("strawberries", "اسٹرابیری", "peak"),
-        ("kinnow", "کنو", "available"),
-        ("guava", "امرود", "available"),
-        ("coriander", "دھنیا", "peak"),
-        ("fenugreek (methi)", "میتھی", "peak"),
+        ("cauliflower", "گوبھی", "peak", "veg"),
+        ("spinach", "پالک", "peak", "veg"),
+        ("mustard greens", "سرسوں کا ساگ", "peak", "veg"),
+        ("peas", "مٹر", "peak", "veg"),
+        ("carrots", "گاجر", "peak", "veg"),
+        ("strawberries", "اسٹرابیری", "peak", "fruit"),
+        ("kinnow", "کنو", "available", "fruit"),
+        ("guava", "امرود", "available", "fruit"),
+        ("coriander", "دھنیا", "peak", "herb"),
+        ("fenugreek (methi)", "میتھی", "peak", "herb"),
     ],
     3: [
-        ("strawberries", "اسٹرابیری", "peak"),
-        ("loquat", "لوکاٹ", "peak"),
-        ("spinach", "پالک", "available"),
-        ("peas", "مٹر", "available"),
-        ("coriander", "دھنیا", "peak"),
-        ("mint", "پودینہ", "peak"),
-        ("fresh garlic", "تازہ لہسن", "peak"),
-        ("spring onion", "ہرا پیاز", "peak"),
+        ("strawberries", "اسٹرابیری", "peak", "fruit"),
+        ("loquat", "لوکاٹ", "peak", "fruit"),
+        ("spinach", "پالک", "available", "veg"),
+        ("peas", "مٹر", "available", "veg"),
+        ("coriander", "دھنیا", "peak", "herb"),
+        ("mint", "پودینہ", "peak", "herb"),
+        ("fresh garlic", "تازہ لہسن", "peak", "herb"),
+        ("spring onion", "ہرا پیاز", "peak", "veg"),
     ],
     4: [
-        ("loquat", "لوکاٹ", "peak"),
-        ("apricots", "خوبانی", "peak"),
-        ("watermelon", "تربوز", "available"),
-        ("cucumber", "کھیرا", "available"),
-        ("mint", "پودینہ", "peak"),
-        ("zucchini", "تورئی", "available"),
+        ("loquat", "لوکاٹ", "peak", "fruit"),
+        ("apricots", "خوبانی", "peak", "fruit"),
+        ("watermelon", "تربوز", "available", "fruit"),
+        ("cucumber", "کھیرا", "available", "veg"),
+        ("mint", "پودینہ", "peak", "herb"),
+        ("zucchini", "تورئی", "available", "veg"),
     ],
     5: [
-        ("mango", "آم", "peak"),
-        ("watermelon", "تربوز", "peak"),
-        ("muskmelon", "خربوزہ", "peak"),
-        ("mulberry", "شہتوت", "peak"),
-        ("apricots", "خوبانی", "peak"),
-        ("falsa", "فالسہ", "peak"),
-        ("okra (bhindi)", "بھنڈی", "available"),
-        ("bottle gourd", "لوکی", "available"),
-        ("cucumber", "کھیرا", "peak"),
-        ("mint", "پودینہ", "peak"),
+        ("mango", "آم", "peak", "fruit"),
+        ("watermelon", "تربوز", "peak", "fruit"),
+        ("muskmelon", "خربوزہ", "peak", "fruit"),
+        ("mulberry", "شہتوت", "peak", "fruit"),
+        ("apricots", "خوبانی", "peak", "fruit"),
+        ("falsa", "فالسہ", "peak", "fruit"),
+        ("okra (bhindi)", "بھنڈی", "available", "veg"),
+        ("bottle gourd", "لوکی", "available", "veg"),
+        ("cucumber", "کھیرا", "peak", "veg"),
+        ("mint", "پودینہ", "peak", "herb"),
     ],
     6: [
-        ("mango", "آم", "peak"),
-        ("watermelon", "تربوز", "peak"),
-        ("muskmelon", "خربوزہ", "peak"),
-        ("falsa", "فالسہ", "peak"),
-        ("jamun", "جامن", "peak"),
-        ("lychee", "لیچی", "peak"),
-        ("okra", "بھنڈی", "peak"),
-        ("bottle gourd", "لوکی", "peak"),
-        ("ridge gourd (tori)", "توری", "peak"),
-        ("bitter gourd (karela)", "کریلا", "peak"),
-        ("cucumber", "کھیرا", "peak"),
+        ("mango", "آم", "peak", "fruit"),
+        ("watermelon", "تربوز", "peak", "fruit"),
+        ("muskmelon", "خربوزہ", "peak", "fruit"),
+        ("falsa", "فالسہ", "peak", "fruit"),
+        ("jamun", "جامن", "peak", "fruit"),
+        ("lychee", "لیچی", "peak", "fruit"),
+        ("okra", "بھنڈی", "peak", "veg"),
+        ("bottle gourd", "لوکی", "peak", "veg"),
+        ("ridge gourd (tori)", "توری", "peak", "veg"),
+        ("bitter gourd (karela)", "کریلا", "peak", "veg"),
+        ("cucumber", "کھیرا", "peak", "veg"),
     ],
     7: [
-        ("mango", "آم", "peak"),
-        ("jamun", "جامن", "peak"),
-        ("peaches", "آڑو", "peak"),
-        ("plums", "آلوبخارا", "peak"),
-        ("okra", "بھنڈی", "peak"),
-        ("bottle gourd", "لوکی", "peak"),
-        ("ridge gourd", "توری", "peak"),
-        ("bitter gourd", "کریلا", "peak"),
-        ("eggplant", "بینگن", "peak"),
-        ("tinda gourd", "ٹینڈا", "peak"),
-        ("tomato", "ٹماٹر", "available"),
+        ("mango", "آم", "peak", "fruit"),
+        ("jamun", "جامن", "peak", "fruit"),
+        ("peaches", "آڑو", "peak", "fruit"),
+        ("plums", "آلوبخارا", "peak", "fruit"),
+        ("okra", "بھنڈی", "peak", "veg"),
+        ("bottle gourd", "لوکی", "peak", "veg"),
+        ("ridge gourd", "توری", "peak", "veg"),
+        ("bitter gourd", "کریلا", "peak", "veg"),
+        ("eggplant", "بینگن", "peak", "veg"),
+        ("tinda gourd", "ٹینڈا", "peak", "veg"),
+        ("tomato", "ٹماٹر", "available", "veg"),
     ],
     8: [
-        ("mango", "آم", "available"),
-        ("peaches", "آڑو", "peak"),
-        ("plums", "آلوبخارا", "peak"),
-        ("pears", "ناشپاتی", "peak"),
-        ("okra", "بھنڈی", "peak"),
-        ("eggplant", "بینگن", "peak"),
-        ("bitter gourd", "کریلا", "peak"),
-        ("tinda gourd", "ٹینڈا", "peak"),
-        ("pumpkin", "کدو", "available"),
+        ("mango", "آم", "available", "fruit"),
+        ("peaches", "آڑو", "peak", "fruit"),
+        ("plums", "آلوبخارا", "peak", "fruit"),
+        ("pears", "ناشپاتی", "peak", "fruit"),
+        ("okra", "بھنڈی", "peak", "veg"),
+        ("eggplant", "بینگن", "peak", "veg"),
+        ("bitter gourd", "کریلا", "peak", "veg"),
+        ("tinda gourd", "ٹینڈا", "peak", "veg"),
+        ("pumpkin", "کدو", "available", "veg"),
     ],
     9: [
-        ("apples", "سیب", "peak"),
-        ("pears", "ناشپاتی", "peak"),
-        ("guava", "امرود", "available"),
-        ("pomegranate", "انار", "peak"),
-        ("eggplant", "بینگن", "available"),
-        ("pumpkin", "کدو", "peak"),
-        ("spinach", "پالک", "available"),
-        ("sweet potato", "شکرقندی", "available"),
+        ("apples", "سیب", "peak", "fruit"),
+        ("pears", "ناشپاتی", "peak", "fruit"),
+        ("guava", "امرود", "available", "fruit"),
+        ("pomegranate", "انار", "peak", "fruit"),
+        ("eggplant", "بینگن", "available", "veg"),
+        ("pumpkin", "کدو", "peak", "veg"),
+        ("spinach", "پالک", "available", "veg"),
+        ("sweet potato", "شکرقندی", "available", "veg"),
     ],
     10: [
-        ("apples", "سیب", "peak"),
-        ("pomegranate", "انار", "peak"),
-        ("persimmon", "جاپانی پھل", "peak"),
-        ("guava", "امرود", "peak"),
-        ("cauliflower", "گوبھی", "available"),
-        ("spinach", "پالک", "available"),
-        ("sweet potato", "شکرقندی", "peak"),
-        ("pumpkin", "کدو", "peak"),
+        ("apples", "سیب", "peak", "fruit"),
+        ("pomegranate", "انار", "peak", "fruit"),
+        ("persimmon", "جاپانی پھل", "peak", "fruit"),
+        ("guava", "امرود", "peak", "fruit"),
+        ("cauliflower", "گوبھی", "available", "veg"),
+        ("spinach", "پالک", "available", "veg"),
+        ("sweet potato", "شکرقندی", "peak", "veg"),
+        ("pumpkin", "کدو", "peak", "veg"),
     ],
     11: [
-        ("oranges", "مالٹا", "peak"),
-        ("kinnow", "کنو", "peak"),
-        ("guava", "امرود", "peak"),
-        ("pomegranate", "انار", "peak"),
-        ("persimmon", "جاپانی پھل", "peak"),
-        ("cauliflower", "گوبھی", "peak"),
-        ("spinach", "پالک", "peak"),
-        ("mustard greens", "سرسوں کا ساگ", "peak"),
-        ("carrots", "گاجر", "peak"),
-        ("peas", "مٹر", "peak"),
+        ("oranges", "مالٹا", "peak", "fruit"),
+        ("kinnow", "کنو", "peak", "fruit"),
+        ("guava", "امرود", "peak", "fruit"),
+        ("pomegranate", "انار", "peak", "fruit"),
+        ("persimmon", "جاپانی پھل", "peak", "fruit"),
+        ("cauliflower", "گوبھی", "peak", "veg"),
+        ("spinach", "پالک", "peak", "veg"),
+        ("mustard greens", "سرسوں کا ساگ", "peak", "veg"),
+        ("carrots", "گاجر", "peak", "veg"),
+        ("peas", "مٹر", "peak", "veg"),
     ],
     12: [
-        ("oranges", "مالٹا", "peak"),
-        ("kinnow", "کنو", "peak"),
-        ("guava", "امرود", "peak"),
-        ("cauliflower", "گوبھی", "peak"),
-        ("spinach", "پالک", "peak"),
-        ("mustard greens", "سرسوں کا ساگ", "peak"),
-        ("carrots", "گاجر", "peak"),
-        ("turnips", "شلجم", "peak"),
-        ("peas", "مٹر", "peak"),
-        ("radish", "مولی", "peak"),
+        ("oranges", "مالٹا", "peak", "fruit"),
+        ("kinnow", "کنو", "peak", "fruit"),
+        ("guava", "امرود", "peak", "fruit"),
+        ("cauliflower", "گوبھی", "peak", "veg"),
+        ("spinach", "پالک", "peak", "veg"),
+        ("mustard greens", "سرسوں کا ساگ", "peak", "veg"),
+        ("carrots", "گاجر", "peak", "veg"),
+        ("turnips", "شلجم", "peak", "veg"),
+        ("peas", "مٹر", "peak", "veg"),
+        ("radish", "مولی", "peak", "veg"),
     ],
 }
 
 
 # ─────────────────────────────────────────────────────────────────
 # Other cuisines — abbreviated month-by-month (Northern hemisphere)
+# Format kept simple: just English names
 # ─────────────────────────────────────────────────────────────────
 ITALIAN_BY_MONTH = {
     1:  ["radicchio", "fennel", "cabbage", "leeks", "oranges", "blood oranges"],
@@ -270,27 +270,61 @@ def month_name(month: int = None, lang: str = "en") -> str:
 
 def in_season(cuisine: str, month: int = None, max_items: int = 8) -> list:
     """
-    Return a list of items in season for a cuisine in a given month.
+    Return a balanced mix of items in season for a cuisine in a given month.
 
-    For Pakistan: returns list of dicts {en, ur, peak}.
-    For other cuisines: returns list of dicts {en, ur=None, peak=True}.
+    For Pakistan: balanced across fruits, veggies, and herbs.
+    For other cuisines: simple ordered list, English only.
+
+    Returns a list of dicts with keys: en, ur, peak, category.
     """
     m = month if month else current_month()
 
     if cuisine == "Pakistani":
         items = PAKISTAN_BY_MONTH.get(m, [])
-        # Sort peak items first
-        items_sorted = sorted(items, key=lambda x: 0 if x[2] == "peak" else 1)
-        return [
-            {"en": en, "ur": ur, "peak": (status == "peak")}
-            for (en, ur, status) in items_sorted[:max_items]
-        ]
+
+        # Bucket items by category, peak items first within each bucket
+        buckets = {"fruit": [], "veg": [], "herb": [], "grain": []}
+        for entry in items:
+            en, ur, status, cat = entry
+            buckets.setdefault(cat, []).append({
+                "en": en, "ur": ur, "peak": (status == "peak"), "category": cat,
+            })
+        for cat in buckets:
+            buckets[cat].sort(key=lambda x: 0 if x["peak"] else 1)
+
+        # Aim for up to half fruits, half veggies, plus 1 herb if available
+        half = max_items // 2
+        herb_quota = 1 if max_items >= 4 else 0
+        veg_quota = max_items - half - herb_quota
+
+        result = []
+        result.extend(buckets.get("fruit", [])[:half])
+        result.extend(buckets.get("veg",   [])[:veg_quota])
+        result.extend(buckets.get("herb",  [])[:herb_quota])
+
+        # Fill any remaining slots from whichever bucket has spares
+        remaining = max_items - len(result)
+        if remaining > 0:
+            already = {r["en"] for r in result}
+            spares = []
+            for cat in ("veg", "fruit", "herb", "grain"):
+                for entry in buckets.get(cat, []):
+                    if entry["en"] not in already:
+                        spares.append(entry)
+            result.extend(spares[:remaining])
+
+        # Re-sort: peak items first overall, then category grouping for nice display
+        result.sort(key=lambda x: (0 if x["peak"] else 1, ["fruit", "veg", "herb", "grain"].index(x["category"])))
+        return result[:max_items]
 
     cal = CUISINE_CALENDARS.get(cuisine)
     if not cal:
         return []
     items = cal.get(m, [])[:max_items]
-    return [{"en": en, "ur": None, "peak": True} for en in items]
+    return [
+        {"en": en, "ur": None, "peak": True, "category": "mixed"}
+        for en in items
+    ]
 
 
 def find_imported(text: str) -> list:
@@ -331,8 +365,6 @@ def seasonal_prompt_context(text: str, cuisine: str, month: int = None) -> str:
     """
     Compose a short string injected into the AI recipe prompt, telling it
     which items are seasonal and which are imported with local alternatives.
-
-    Returns plain text — empty string if there's nothing useful to add.
     """
     parts = []
 
