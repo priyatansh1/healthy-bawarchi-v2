@@ -462,7 +462,60 @@ if recipe:
     )
 
     st.caption(t("sidebar_disclaimer"))
+# ─────────────────────────────────────────────
+# SHARE THIS APP — QR code & link
+# ─────────────────────────────────────────────
+APP_URL = "https://healthy-bawarchi-v2-d6jvkxzb4ghgae8ae3iiyb.streamlit.app/"
 
+_share_strings = {
+    "en": {
+        "header": "Share Healthy Bawarchi",
+        "tagline": "Scan the QR code with your phone, or copy the link below to share.",
+        "link_label": "App link",
+    },
+    "ur": {
+        "header": "ہیلتھی باورچی شیئر کریں",
+        "tagline": "اپنے فون سے کیو آر کوڈ اسکین کریں، یا نیچے دیا گیا لنک کاپی کریں۔",
+        "link_label": "ایپ کا لنک",
+    },
+}
+_s = _share_strings.get(get_lang(), _share_strings["en"])
+
+st.markdown("<br>", unsafe_allow_html=True)
+st.markdown(
+    f'<div class="section-card"><div class="section-title">📱 {_s["header"]}</div>',
+    unsafe_allow_html=True,
+)
+
+share_col1, share_col2 = st.columns([1, 1.4], gap="medium")
+
+with share_col1:
+    try:
+        st.image("healthy_bawarchi_qr_only.png", use_container_width=True)
+    except Exception:
+        st.caption("QR code image not found.")
+
+with share_col2:
+    st.markdown(
+        f'<p style="color:#1B5E20; font-size:0.95rem; margin-bottom:0.8rem;">'
+        f'{_s["tagline"]}</p>',
+        unsafe_allow_html=True,
+    )
+    st.text_input(
+        _s["link_label"],
+        value=APP_URL,
+        label_visibility="collapsed",
+    )
+    st.markdown(
+        f'<a href="{APP_URL}" target="_blank" '
+        f'style="display:inline-block; background:#2E7D32; color:white; '
+        f'padding:0.5rem 1.2rem; border-radius:50px; text-decoration:none; '
+        f'font-weight:600; font-size:0.9rem; margin-top:0.5rem;">'
+        f'🔗 Open in new tab</a>',
+        unsafe_allow_html=True,
+    )
+
+st.markdown("</div>", unsafe_allow_html=True)
 # ─────────────────────────────────────────────
 # FOOTER
 # ─────────────────────────────────────────────
