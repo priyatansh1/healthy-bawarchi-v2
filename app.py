@@ -230,47 +230,23 @@ with st.sidebar:
     st.markdown("---")
 
     # ── 🌱 IN SEASON NOW ──────────────────────────
-    _sb_lang = get_lang()
+  _sb_lang = get_lang()
+    _cuisine = st.session_state.get("selected_cuisine", "Pakistani")
     _seasonal_strings = {
         "en": {
             "header": "🌱 In Season Now",
-            "subhead": f"Fresh in {month_name(lang='en')} for {cuisine} cuisine",
+            "subhead": f"Fresh in {month_name(lang='en')} for {_cuisine} cuisine",
             "tip": "Cooking with seasonal produce is fresher, cheaper, and uses less energy to grow and ship.",
             "peak_label": "at peak",
         },
         "ur": {
             "header": "🌱 ابھی موسم میں",
-            "subhead": f"{month_name(lang='ur')} میں {cuisine} کھانوں کے لیے تازہ",
+            "subhead": f"{month_name(lang='ur')} میں {_cuisine} کھانوں کے لیے تازہ",
             "tip": "موسمی پیداوار کھانا زیادہ تازہ، سستا اور ماحول کے لیے بہتر ہے۔",
             "peak_label": "عروج پر",
         },
     }
     _ss = _seasonal_strings.get(_sb_lang, _seasonal_strings["en"])
-
-    st.markdown(f"### {_ss['header']}")
-    st.caption(_ss["subhead"])
-
-    _items = in_season(cuisine, max_items=6)
-    if _items:
-        for _it in _items:
-            _star = "⭐ " if _it["peak"] else "• "
-            if _sb_lang == "ur" and _it.get("ur"):
-                _line = f"{_star}**{_it['ur']}** ({_it['en']})"
-            else:
-                _line = f"{_star}**{_it['en']}**"
-                if _it.get("ur"):
-                    _line += f"  ·  {_it['ur']}"
-            st.markdown(_line)
-
-        st.markdown(
-            f'<div style="margin-top:0.8rem; padding:0.6rem 0.8rem; '
-            f'background:#E8F5E9; border-left:3px solid #2E7D32; '
-            f'border-radius:6px; font-size:0.82rem; color:#1B5E20; '
-            f'font-style:italic;">💡 {_ss["tip"]}</div>',
-            unsafe_allow_html=True,
-        )
-    else:
-        st.caption("—")
 
 # ─────────────────────────────────────────────
 # CUISINE SELECTOR
