@@ -2,7 +2,6 @@
 # Healthy Bawarchi — Main Streamlit App
 # Bilingual (EN/UR) AI-powered recipe generator
 # ============================================================
-
 import streamlit as st
 from PIL import Image
 
@@ -10,6 +9,8 @@ from recipe_engine import generate_recipe, generate_recipe_from_image, recipe_to
 from usda_nutrition import calculate_recipe_nutrition, format_nutrition_source_note
 from i18n import t, get_lang, inject_rtl_css, inject_ltr_css
 from seasonal import in_season, month_name
+
+
 # ─────────────────────────────────────────────
 # PAGE CONFIG — must be first Streamlit call
 # ─────────────────────────────────────────────
@@ -19,6 +20,7 @@ st.set_page_config(
     layout="centered",
     initial_sidebar_state="collapsed",
 )
+
 
 # ─────────────────────────────────────────────
 # SESSION STATE INITIALISATION
@@ -31,8 +33,11 @@ if "nutrition" not in st.session_state:
     st.session_state["nutrition"] = None
 if "detected_ingredients" not in st.session_state:
     st.session_state["detected_ingredients"] = None
+if "selected_cuisine" not in st.session_state:
+    st.session_state["selected_cuisine"] = "Pakistani"
 
 lang = get_lang()
+
 
 # ─────────────────────────────────────────────
 # LANGUAGE-AWARE CSS
@@ -42,156 +47,158 @@ if lang == "ur":
 else:
     inject_ltr_css()
 
+
 # ─────────────────────────────────────────────
 # GLOBAL CSS — Green theme, Healthy Bawarchi brand
 # ─────────────────────────────────────────────
 st.markdown("""
 <style>
-    .stApp {
-        background: linear-gradient(135deg, #F1F8E9 0%, #E8F5E9 100%);
-    }
-    .hero-banner {
-        background: linear-gradient(135deg, #1B5E20 0%, #2E7D32 50%, #388E3C 100%);
-        border-radius: 20px;
-        padding: 2.5rem 2rem;
-        text-align: center;
-        margin-bottom: 2rem;
-        box-shadow: 0 8px 32px rgba(27, 94, 32, 0.3);
-    }
-    .hero-banner h1 {
-        color: white;
-        font-size: 2.8rem;
-        font-weight: 700;
-        margin: 0;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        letter-spacing: 1px;
-    }
-    .hero-banner p {
-        color: rgba(255,255,255,0.92);
-        font-size: 1.05rem;
-        margin: 0.5rem 0 0 0;
-        font-weight: 300;
-    }
-    .hero-tagline {
-        color: #CCFF90;
-        font-size: 0.95rem;
-        font-style: italic;
-        margin-top: 0.3rem;
-    }
-    .section-card {
-        background: white;
-        border-radius: 16px;
-        padding: 1.5rem;
-        margin-bottom: 1.2rem;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.07);
-        border-left: 4px solid #2E7D32;
-    }
-    .section-title {
-        font-size: 1.1rem;
-        font-weight: 600;
-        color: #1B5E20;
-        margin-bottom: 0.8rem;
-    }
-    .stButton > button {
-        background: linear-gradient(135deg, #1B5E20, #2E7D32) !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 50px !important;
-        padding: 0.75rem 2.5rem !important;
-        font-size: 1.1rem !important;
-        font-weight: 600 !important;
-        width: 100% !important;
-        cursor: pointer !important;
-        box-shadow: 0 4px 15px rgba(27, 94, 32, 0.4) !important;
-        transition: all 0.3s ease !important;
-        letter-spacing: 0.5px !important;
-    }
-    .stButton > button:hover {
-        transform: translateY(-2px) !important;
-        box-shadow: 0 6px 20px rgba(27, 94, 32, 0.5) !important;
-    }
-    .recipe-output {
-        background: white;
-        border-radius: 16px;
-        padding: 2rem;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-        border-top: 5px solid #2E7D32;
-        margin-top: 1.5rem;
-    }
-    .cuisine-pill {
-        display: inline-block;
-        background: #E8F5E9;
-        color: #2E7D32;
-        border: 1px solid #2E7D32;
-        border-radius: 20px;
-        padding: 0.2rem 0.8rem;
-        font-size: 0.85rem;
-        font-weight: 600;
-        margin-right: 0.4rem;
-        margin-bottom: 0.8rem;
-    }
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
-        background: #E8F5E9;
-        border-radius: 12px;
-        padding: 4px;
-    }
-    .stTabs [data-baseweb="tab"] {
-        border-radius: 10px;
-        padding: 8px 20px;
-        font-weight: 600;
-    }
-    .stTabs [aria-selected="true"] {
-        background: #2E7D32 !important;
-        color: white !important;
-    }
-    .detected-box {
-        background: #E8F5E9;
-        border: 1px solid #4CAF50;
-        border-radius: 10px;
-        padding: 0.8rem 1rem;
-        font-size: 0.9rem;
-        color: #1B5E20;
-        margin: 0.5rem 0 1rem 0;
-    }
-    .nutrition-card {
-        background: #F9FBE7;
-        border-radius: 12px;
-        padding: 1rem;
-        border: 1px solid #C5E1A5;
-    }
-    .usda-badge {
-        font-size: 0.75rem;
-        color: #388E3C;
-        font-weight: 600;
-        margin-top: 0.5rem;
-    }
-    div[data-testid="column"]:last-child .stButton > button {
-        background: #E8F5E9 !important;
-        color: #1B5E20 !important;
-        border: 1px solid #2E7D32 !important;
-        border-radius: 20px !important;
-        padding: 0.3rem 0.8rem !important;
-        font-size: 0.85rem !important;
-        font-weight: 600 !important;
-        width: auto !important;
-        min-width: 90px !important;
-        white-space: nowrap !important;
-        box-shadow: none !important;
-    }
-    .footer {
-        text-align: center;
-        color: #777;
-        font-size: 0.8rem;
-        margin-top: 3rem;
-        padding-top: 1rem;
-        border-top: 1px solid #ddd;
-    }
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
+.stApp {
+    background: linear-gradient(135deg, #F1F8E9 0%, #E8F5E9 100%);
+}
+.hero-banner {
+    background: linear-gradient(135deg, #1B5E20 0%, #2E7D32 50%, #388E3C 100%);
+    border-radius: 20px;
+    padding: 2.5rem 2rem;
+    text-align: center;
+    margin-bottom: 2rem;
+    box-shadow: 0 8px 32px rgba(27, 94, 32, 0.3);
+}
+.hero-banner h1 {
+    color: white;
+    font-size: 2.8rem;
+    font-weight: 700;
+    margin: 0;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    letter-spacing: 1px;
+}
+.hero-banner p {
+    color: rgba(255,255,255,0.92);
+    font-size: 1.05rem;
+    margin: 0.5rem 0 0 0;
+    font-weight: 300;
+}
+.hero-tagline {
+    color: #CCFF90;
+    font-size: 0.95rem;
+    font-style: italic;
+    margin-top: 0.3rem;
+}
+.section-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 1.2rem;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    border-left: 4px solid #2E7D32;
+}
+.section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1B5E20;
+    margin-bottom: 0.8rem;
+}
+.stButton > button {
+    background: linear-gradient(135deg, #1B5E20, #2E7D32) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 50px !important;
+    padding: 0.75rem 2.5rem !important;
+    font-size: 1.1rem !important;
+    font-weight: 600 !important;
+    width: 100% !important;
+    cursor: pointer !important;
+    box-shadow: 0 4px 15px rgba(27, 94, 32, 0.4) !important;
+    transition: all 0.3s ease !important;
+    letter-spacing: 0.5px !important;
+}
+.stButton > button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(27, 94, 32, 0.5) !important;
+}
+.recipe-output {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    border-top: 5px solid #2E7D32;
+    margin-top: 1.5rem;
+}
+.cuisine-pill {
+    display: inline-block;
+    background: #E8F5E9;
+    color: #2E7D32;
+    border: 1px solid #2E7D32;
+    border-radius: 20px;
+    padding: 0.2rem 0.8rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-right: 0.4rem;
+    margin-bottom: 0.8rem;
+}
+.stTabs [data-baseweb="tab-list"] {
+    gap: 8px;
+    background: #E8F5E9;
+    border-radius: 12px;
+    padding: 4px;
+}
+.stTabs [data-baseweb="tab"] {
+    border-radius: 10px;
+    padding: 8px 20px;
+    font-weight: 600;
+}
+.stTabs [aria-selected="true"] {
+    background: #2E7D32 !important;
+    color: white !important;
+}
+.detected-box {
+    background: #E8F5E9;
+    border: 1px solid #4CAF50;
+    border-radius: 10px;
+    padding: 0.8rem 1rem;
+    font-size: 0.9rem;
+    color: #1B5E20;
+    margin: 0.5rem 0 1rem 0;
+}
+.nutrition-card {
+    background: #F9FBE7;
+    border-radius: 12px;
+    padding: 1rem;
+    border: 1px solid #C5E1A5;
+}
+.usda-badge {
+    font-size: 0.75rem;
+    color: #388E3C;
+    font-weight: 600;
+    margin-top: 0.5rem;
+}
+div[data-testid="column"]:last-child .stButton > button {
+    background: #E8F5E9 !important;
+    color: #1B5E20 !important;
+    border: 1px solid #2E7D32 !important;
+    border-radius: 20px !important;
+    padding: 0.3rem 0.8rem !important;
+    font-size: 0.85rem !important;
+    font-weight: 600 !important;
+    width: auto !important;
+    min-width: 90px !important;
+    white-space: nowrap !important;
+    box-shadow: none !important;
+}
+.footer {
+    text-align: center;
+    color: #777;
+    font-size: 0.8rem;
+    margin-top: 3rem;
+    padding-top: 1rem;
+    border-top: 1px solid #ddd;
+}
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
+
 
 # ─────────────────────────────────────────────
 # LANGUAGE TOGGLE — top right
@@ -204,6 +211,7 @@ with col_toggle:
         st.session_state["nutrition"] = None
         st.rerun()
 
+
 # ─────────────────────────────────────────────
 # HERO BANNER
 # ─────────────────────────────────────────────
@@ -215,9 +223,7 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# ─────────────────────────────────────────────
-# SIDEBAR
-# ─────────────────────────────────────────────
+
 # ─────────────────────────────────────────────
 # SIDEBAR — Settings + Seasonal Awareness
 # ─────────────────────────────────────────────
@@ -229,24 +235,44 @@ with st.sidebar:
     st.caption(t("sidebar_disclaimer"))
     st.markdown("---")
 
-    # ── 🌱 IN SEASON NOW ──────────────────────────
-  _sb_lang = get_lang()
-    _cuisine = st.session_state.get("selected_cuisine", "Pakistani")
-    _seasonal_strings = {
-        "en": {
-            "header": "🌱 In Season Now",
-            "subhead": f"Fresh in {month_name(lang='en')} for {_cuisine} cuisine",
-            "tip": "Cooking with seasonal produce is fresher, cheaper, and uses less energy to grow and ship.",
-            "peak_label": "at peak",
-        },
-        "ur": {
-            "header": "🌱 ابھی موسم میں",
-            "subhead": f"{month_name(lang='ur')} میں {_cuisine} کھانوں کے لیے تازہ",
-            "tip": "موسمی پیداوار کھانا زیادہ تازہ، سستا اور ماحول کے لیے بہتر ہے۔",
-            "peak_label": "عروج پر",
-        },
-    }
-    _ss = _seasonal_strings.get(_sb_lang, _seasonal_strings["en"])
+    # ── In Season Now block ─────────────────
+    sb_lang = get_lang()
+    sb_cuisine = st.session_state.get("selected_cuisine", "Pakistani")
+
+    if sb_lang == "ur":
+        ss_header = "🌱 ابھی موسم میں"
+        ss_subhead = f"{month_name(lang='ur')} میں {sb_cuisine} کھانوں کے لیے تازہ"
+        ss_tip = "موسمی پیداوار کھانا زیادہ تازہ، سستا اور ماحول کے لیے بہتر ہے۔"
+    else:
+        ss_header = "🌱 In Season Now"
+        ss_subhead = f"Fresh in {month_name(lang='en')} for {sb_cuisine} cuisine"
+        ss_tip = "Cooking with seasonal produce is fresher, cheaper, and uses less energy to grow and ship."
+
+    st.markdown(f"### {ss_header}")
+    st.caption(ss_subhead)
+
+    season_items = in_season(sb_cuisine, max_items=6)
+    if season_items:
+        for item in season_items:
+            star = "⭐ " if item["peak"] else "• "
+            if sb_lang == "ur" and item.get("ur"):
+                line = f"{star}**{item['ur']}** ({item['en']})"
+            else:
+                line = f"{star}**{item['en']}**"
+                if item.get("ur"):
+                    line += f"  ·  {item['ur']}"
+            st.markdown(line)
+
+        st.markdown(
+            f'<div style="margin-top:0.8rem; padding:0.6rem 0.8rem; '
+            f'background:#E8F5E9; border-left:3px solid #2E7D32; '
+            f'border-radius:6px; font-size:0.82rem; color:#1B5E20; '
+            f'font-style:italic;">💡 {ss_tip}</div>',
+            unsafe_allow_html=True,
+        )
+    else:
+        st.caption("—")
+
 
 # ─────────────────────────────────────────────
 # CUISINE SELECTOR
@@ -255,12 +281,14 @@ st.markdown(
     f'<div class="section-card"><div class="section-title">🌍 {t("choose_cuisine")}</div>',
     unsafe_allow_html=True,
 )
+
 cuisine_options = {
     "🇵🇰 Pakistani": "Pakistani",
-    "🇨🇳 Chinese":   "Chinese",
-    "🇮🇹 Italian":   "Italian",
-    "🇲🇽 Mexican":   "Mexican",
+    "🇨🇳 Chinese": "Chinese",
+    "🇮🇹 Italian": "Italian",
+    "🇲🇽 Mexican": "Mexican",
 }
+
 cuisine_display = st.radio(
     "Cuisine",
     options=list(cuisine_options.keys()),
@@ -268,7 +296,10 @@ cuisine_display = st.radio(
     label_visibility="collapsed",
 )
 cuisine = cuisine_options[cuisine_display]
+st.session_state["selected_cuisine"] = cuisine
+
 st.markdown("</div>", unsafe_allow_html=True)
+
 
 # ─────────────────────────────────────────────
 # MAX INGREDIENTS SLIDER
@@ -277,6 +308,7 @@ st.markdown(
     f'<div class="section-card"><div class="section-title">🔢 {t("max_ingredients_label")}</div>',
     unsafe_allow_html=True,
 )
+
 max_ingredients = st.slider(
     "Max ingredients",
     min_value=3,
@@ -286,7 +318,9 @@ max_ingredients = st.slider(
     label_visibility="collapsed",
 )
 st.caption(t("max_ingredients_caption", n=max_ingredients))
+
 st.markdown("</div>", unsafe_allow_html=True)
+
 
 # ─────────────────────────────────────────────
 # INGREDIENT INPUT
@@ -320,15 +354,17 @@ with tab2:
         image = Image.open(uploaded_file)
         st.image(image, caption="", use_container_width=True)
         uploaded_image_bytes = uploaded_file.getvalue()
-        st.caption(t("photo_caption"))
+    st.caption(t("photo_caption"))
 
 st.markdown("</div>", unsafe_allow_html=True)
+
 
 # ─────────────────────────────────────────────
 # GENERATE BUTTON
 # ─────────────────────────────────────────────
 st.markdown("<br>", unsafe_allow_html=True)
 generate_btn = st.button(t("generate_btn"), use_container_width=True)
+
 
 # ─────────────────────────────────────────────
 # GENERATION LOGIC
@@ -372,6 +408,7 @@ if generate_btn:
                 st.error(t("error_generic", msg=err))
             st.stop()
 
+
 # ─────────────────────────────────────────────
 # RECIPE OUTPUT RENDERING
 # ─────────────────────────────────────────────
@@ -407,7 +444,6 @@ if recipe:
     )
 
     st.markdown("---")
-
     col_ing, col_nut = st.columns([1.1, 0.9])
 
     with col_ing:
@@ -419,7 +455,7 @@ if recipe:
             qty = ing.get("quantity", "")
             pkr = ing.get("price_pkr", 0)
             total_pkr += pkr if isinstance(pkr, (int, float)) else 0
-            st.markdown(f"• **{item}** — {qty}  *(~PKR {pkr})*")
+            st.markdown(f"• **{item}** — {qty} *(~PKR {pkr})*")
         st.markdown(f"**{t('total_label')}: ~PKR {total_pkr}**")
 
     with col_nut:
@@ -447,14 +483,12 @@ if recipe:
             st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("---")
-
     st.markdown(f"### 👨‍🍳 {t('instructions_header')}")
     steps = recipe.get("instructions_ur" if lang == "ur" else "instructions", [])
     for i, step in enumerate(steps, 1):
         st.markdown(f"**{i}.** {step}")
 
     st.markdown("---")
-
     health = recipe.get("health_tips_ur" if lang == "ur" else "health_tips", "")
     st.success(f"💚 **{t('health_header')}**\n\n{health}")
 
@@ -473,8 +507,8 @@ if recipe:
     )
 
     st.markdown("</div>", unsafe_allow_html=True)
-
     st.markdown("<br>", unsafe_allow_html=True)
+
     download_text = recipe_to_text(recipe, lang=lang)
     st.download_button(
         label=t("download_btn"),
@@ -485,28 +519,25 @@ if recipe:
     )
 
     st.caption(t("sidebar_disclaimer"))
+
+
 # ─────────────────────────────────────────────
 # SHARE THIS APP — QR code & link
 # ─────────────────────────────────────────────
 APP_URL = "https://healthy-bawarchi-v2-d6jvkxzb4ghgae8ae3iiyb.streamlit.app/"
 
-_share_strings = {
-    "en": {
-        "header": "Share Healthy Bawarchi",
-        "tagline": "Scan the QR code with your phone, or copy the link below to share.",
-        "link_label": "App link",
-    },
-    "ur": {
-        "header": "ہیلتھی باورچی شیئر کریں",
-        "tagline": "اپنے فون سے کیو آر کوڈ اسکین کریں، یا نیچے دیا گیا لنک کاپی کریں۔",
-        "link_label": "ایپ کا لنک",
-    },
-}
-_s = _share_strings.get(get_lang(), _share_strings["en"])
+if get_lang() == "ur":
+    share_header = "ہیلتھی باورچی شیئر کریں"
+    share_tagline = "اپنے فون سے کیو آر کوڈ اسکین کریں، یا نیچے دیا گیا لنک کاپی کریں۔"
+    share_link_label = "ایپ کا لنک"
+else:
+    share_header = "Share Healthy Bawarchi"
+    share_tagline = "Scan the QR code with your phone, or copy the link below to share."
+    share_link_label = "App link"
 
 st.markdown("<br>", unsafe_allow_html=True)
 st.markdown(
-    f'<div class="section-card"><div class="section-title">📱 {_s["header"]}</div>',
+    f'<div class="section-card"><div class="section-title">📱 {share_header}</div>',
     unsafe_allow_html=True,
 )
 
@@ -521,11 +552,11 @@ with share_col1:
 with share_col2:
     st.markdown(
         f'<p style="color:#1B5E20; font-size:0.95rem; margin-bottom:0.8rem;">'
-        f'{_s["tagline"]}</p>',
+        f'{share_tagline}</p>',
         unsafe_allow_html=True,
     )
     st.text_input(
-        _s["link_label"],
+        share_link_label,
         value=APP_URL,
         label_visibility="collapsed",
     )
@@ -539,6 +570,8 @@ with share_col2:
     )
 
 st.markdown("</div>", unsafe_allow_html=True)
+
+
 # ─────────────────────────────────────────────
 # FOOTER
 # ─────────────────────────────────────────────
