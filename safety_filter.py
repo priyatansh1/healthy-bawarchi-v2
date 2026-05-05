@@ -1,71 +1,113 @@
 """
-Safety filter for Healthy Bawarchi.
+Safety filter for Healthy Bawarchi — allowlist-based.
 
-Checks user-provided ingredient text BEFORE it is sent to the AI,
-and blocks anything unsafe, unethical, or culturally inappropriate.
+Design philosophy:
+  • PROTEINS are checked strictly: only items on the ALLOWED_PROTEINS
+    list are accepted. Anything else (rat, mouse, snake, frog, exotic
+    species, pets, etc.) is rejected automatically — even items the
+    author never explicitly thought of.
+  • Produce, herbs, spices, and pantry items are NOT checked.
+    Users can freely type tomato, onion, mint, atta, etc.
+  • Pakistani cuisine additionally rejects pork and alcohol
+    (these remain allowed for Italian / Chinese / Mexican).
+  • Cultural authenticity is respected: Pakistani organ meats
+    (kaleji, paya, nihari, etc.) ARE allowed. The AI's nutritional
+    breakdown will honestly flag cholesterol where relevant.
 
-Two-layer protection:
-  Layer 1 — ALWAYS_BLOCKED: rejected for every cuisine
-            (pets, exotic species, human-derived, toxic, non-food, drugs)
-  Layer 2 — PAKISTANI_BLOCKED: additionally rejected ONLY when
-            Pakistani cuisine is selected (pork, alcohol).
-            These remain allowed for Italian/Chinese/Mexican
-            because they are traditional in those cuisines.
-
-Edit the lists below to add or remove items.
+This is much safer than a blocklist because the surface of "things
+that should be blocked" is unbounded; the surface of "things that
+are commonly eaten" is small and stable.
 """
 
 import re
 
 
-# ─────────────────────────────────────────────
-# Layer 1 — Always blocked, regardless of cuisine
-# ─────────────────────────────────────────────
-ALWAYS_BLOCKED = {
-    # Pets and companion animals
-    "cat", "cats", "kitten", "kittens", "dog", "dogs", "puppy", "puppies",
-    "hamster", "rabbit pet", "guinea pig", "parrot", "budgie", "canary",
+# ─────────────────────────────────────────────────────────────────
+# ALLOWED PROTEINS — the only proteins the app will accept.
+# Anything claiming to be a protein outside this list is rejected.
+# ─────────────────────────────────────────────────────────────────
+ALLOWED_PROTEINS = {
+    # Common red & white meats
+    "chicken", "chicken breast", "chicken thigh", "chicken leg", "chicken wing",
+    "chicken mince", "chicken qeema",
+    "beef", "beef mince", "qeema", "beef qeema", "steak", "veal",
+    "mutton", "lamb", "goat", "goat meat", "bakra",
 
-    # Exotic, wild, and endangered species
-    "tiger", "lion", "leopard", "cheetah", "panther",
-    "elephant", "rhino", "rhinoceros", "hippopotamus", "hippo",
-    "pangolin", "shark", "whale", "dolphin", "porpoise",
-    "monkey", "ape", "gorilla", "chimpanzee", "orangutan",
-    "bear", "wolf", "fox",
-    "eagle", "hawk", "falcon", "owl", "vulture",
-    "cobra", "viper", "anaconda",
-    "crocodile", "alligator", "turtle", "tortoise",
-    "peacock", "swan", "flamingo",
-    "deer", "antelope", "gazelle", "zebra",
+    # Pakistani / traditional additions
+    "camel", "camel meat",
+    "turkey",
+    "duck",
+    "quail", "bater",
+    "dove",
 
-    # Human-derived
-    "human", "human meat", "human flesh", "human blood",
-    "baby meat", "child meat", "infant meat", "placenta",
+    # Pakistani organ meats — culturally traditional, allowed
+    "kaleji", "liver", "chicken liver", "mutton liver",
+    "gurda", "kidney", "kidneys",
+    "dil", "heart",
+    "maghaz", "brain",
+    "paya", "trotters",
+    "nihari", "nihari shank", "shank",
+    "ojhri", "tripe",
+    "zaban", "tongue",
 
-    # Non-food / cleaning chemicals / toxic
-    "soap", "detergent", "bleach", "ammonia",
-    "petrol", "gasoline", "diesel", "kerosene",
-    "motor oil", "paint", "ink",
-    "plastic", "rubber", "sawdust",
-    "rat poison", "antifreeze",
-    "feces", "urine", "excrement",
+    # Fish — common in Pakistan and the other cuisines
+    "fish", "rohu", "hilsa", "pomfret", "mackerel", "trout", "salmon",
+    "tuna", "sardine", "sardines", "surmai", "kingfish", "tilapia",
+    "cod", "haddock", "anchovy", "anchovies",
 
-    # Recreational drugs
-    "cocaine", "heroin", "meth", "methamphetamine",
-    "marijuana", "weed", "cannabis", "hashish",
+    # Shellfish
+    "prawn", "prawns", "shrimp", "shrimps",
+    "squid", "calamari", "octopus",
+    "crab", "lobster", "scallops", "mussels", "clams",
 
-    # Known-toxic plants and mushrooms
-    "hemlock", "deadly nightshade", "belladonna", "oleander", "foxglove",
-    "death cap", "destroying angel", "fly agaric",
+    # Eggs and dairy proteins
+    "egg", "eggs", "egg white", "egg whites", "egg yolk", "boiled egg",
+    "milk", "yogurt", "dahi", "yoghurt",
+    "paneer", "cottage cheese", "cheese", "mozzarella", "cheddar",
+    "feta", "ricotta", "parmesan", "halloumi",
+    "cream", "sour cream", "butter", "ghee", "mawa", "khoya",
 
-    # Known poisons
-    "ricin", "cyanide", "arsenic",
+    # Plant proteins — lentils & legumes
+    "lentils", "daal", "dal",
+    "masoor", "masoor daal", "red lentils",
+    "moong", "moong daal", "mung", "mung beans",
+    "chana", "chana daal", "chickpeas", "garbanzo", "garbanzos",
+    "kabuli chana", "kala chana",
+    "urad", "urad daal", "black gram",
+    "toor", "toor daal", "arhar",
+
+    # Plant proteins — beans
+    "kidney beans", "rajma", "red beans",
+    "black beans", "white beans", "navy beans", "cannellini beans",
+    "pinto beans", "lima beans", "fava beans", "broad beans", "lobia",
+    "black eyed peas", "soybeans", "soya beans",
+
+    # Plant proteins — soy & seitan
+    "tofu", "silken tofu", "firm tofu", "tempeh", "soy chunks",
+    "tvp", "textured vegetable protein", "seitan",
 }
 
 
-# ─────────────────────────────────────────────
-# Layer 2 — Blocked only when Pakistani cuisine is selected
-# ─────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────
+# Lightweight detection: does the user's text claim a protein?
+# We look for "meat" or specific protein-suggesting words like
+# steak, mince, qeema, fillet, drumstick — to catch things like
+# "rat meat", "snake meat" that obviously assert a protein.
+# ─────────────────────────────────────────────────────────────────
+PROTEIN_TRIGGERS = {
+    # Generic words that signal "I'm putting a protein on the list"
+    "meat", "flesh", "mince", "qeema", "fillet", "filet",
+    "steak", "chop", "chops", "roast", "ribs", "ribeye",
+    "drumstick", "drumsticks", "wing", "wings", "thigh", "thighs",
+    "breast", "breasts", "leg", "legs", "shank", "shanks",
+    "loin", "tenderloin", "sirloin",
+}
+
+
+# ─────────────────────────────────────────────────────────────────
+# Pakistani-cuisine additional cultural blocks
+# (Always rejected when Pakistani is selected)
+# ─────────────────────────────────────────────────────────────────
 PAKISTANI_BLOCKED = {
     # Pork and pork products
     "pork", "ham", "bacon", "prosciutto", "pancetta", "salami",
@@ -82,18 +124,49 @@ PAKISTANI_BLOCKED = {
 }
 
 
+# ─────────────────────────────────────────────────────────────────
+# Friendly, non-preachy messages by category
+# ─────────────────────────────────────────────────────────────────
+MESSAGES_EN = {
+    "unrecognized_protein": (
+        "Bawarchi only suggests recipes using common everyday proteins. "
+        "We didn't recognise: {items}. "
+        "Try chicken, beef, mutton, fish, lentils, chickpeas, paneer, eggs, or tofu."
+    ),
+    "pakistani": (
+        "{items} isn't traditionally used in Pakistani cuisine. "
+        "Try the Italian, Chinese, or Mexican option, or remove it from your list."
+    ),
+}
+
+MESSAGES_UR = {
+    "unrecognized_protein": (
+        "باورچی صرف عام، روزمرہ پروٹین استعمال کرتا ہے۔ "
+        "ہم نے یہ نہیں پہچانا: {items}۔ "
+        "چکن، گوشت، دال، مچھلی، چنا، پنیر، انڈے یا ٹوفو آزمائیں۔"
+    ),
+    "pakistani": (
+        "{items} روایتی پاکستانی کھانوں میں استعمال نہیں ہوتا۔ "
+        "اطالوی، چینی یا میکسیکن آپشن آزمائیں، یا اسے اپنی فہرست سے ہٹا دیں۔"
+    ),
+}
+
+
+# ─────────────────────────────────────────────────────────────────
+# Public API
+# ─────────────────────────────────────────────────────────────────
 def check_ingredients(text: str, cuisine: str) -> dict:
     """
-    Check user-provided ingredient text for blocked items.
+    Validate user-typed ingredient text against the allowlist.
 
     Args:
         text:    Raw text the user typed in the ingredients box.
         cuisine: The currently-selected cuisine (e.g. "Pakistani").
 
     Returns:
-        A dict with three keys:
+        A dict with keys:
           safe     (bool): True if the input is acceptable
-          category (str):  "" if safe, otherwise "general" or "pakistani"
+          category (str):  "" if safe, otherwise the rejection category
           blocked  (list): the specific items that were flagged
     """
     if not text or not text.strip():
@@ -101,21 +174,133 @@ def check_ingredients(text: str, cuisine: str) -> dict:
 
     text_lower = text.lower()
 
-    # Layer 1: always-blocked items
-    found = [item for item in ALWAYS_BLOCKED if _word_in(text_lower, item)]
-    if found:
-        return {"safe": False, "category": "general", "blocked": found}
-
-    # Layer 2: Pakistani-specific items
+    # ── 1. Pakistani-specific cultural check ──
+    # (Always run, even before the protein check, because pork
+    # is technically a "recognised protein" in the West.)
     if cuisine == "Pakistani":
-        found = [item for item in PAKISTANI_BLOCKED if _word_in(text_lower, item)]
-        if found:
-            return {"safe": False, "category": "pakistani", "blocked": found}
+        cultural = [item for item in PAKISTANI_BLOCKED if _word_in(text_lower, item)]
+        if cultural:
+            return {
+                "safe": False,
+                "category": "pakistani",
+                "blocked": _dedupe(cultural),
+            }
+
+    # ── 2. Protein allowlist check ──
+    # Split user text into ingredient phrases, then for each phrase
+    # decide whether it claims to be a protein. If yes, it must
+    # match the allowlist.
+    phrases = _split_into_ingredients(text_lower)
+    rejected = []
+
+    for phrase in phrases:
+        if not phrase:
+            continue
+        if _claims_protein(phrase) and not _matches_allowed_protein(phrase):
+            rejected.append(phrase.strip())
+
+    if rejected:
+        return {
+            "safe": False,
+            "category": "unrecognized_protein",
+            "blocked": _dedupe(rejected),
+        }
 
     return {"safe": True, "category": "", "blocked": []}
 
 
+def get_message(category: str, blocked: list, lang: str = "en") -> str:
+    """Compose a friendly user-facing message for a blocked input."""
+    items_str = ", ".join(blocked) if blocked else ""
+    table = MESSAGES_UR if lang == "ur" else MESSAGES_EN
+    template = table.get(category, table["unrecognized_protein"])
+    return template.format(items=items_str)
+
+
+# ─────────────────────────────────────────────────────────────────
+# Internal helpers
+# ─────────────────────────────────────────────────────────────────
+def _split_into_ingredients(text: str) -> list:
+    """Split user text on commas, semicolons, newlines, ' and '."""
+    parts = re.split(r"[,;\n]| and ", text)
+    return [p.strip() for p in parts if p.strip()]
+
+
+def _claims_protein(phrase: str) -> bool:
+    """
+    Return True if a phrase looks like it's specifying a protein.
+
+    Triggers:
+      - Contains a protein-trigger word (meat, mince, steak, etc.)
+      - Or contains an explicitly known protein head-noun
+        (rat, snake, frog, dog, etc.) even without 'meat'
+    """
+    # Fast path: any explicit protein trigger word?
+    for trig in PROTEIN_TRIGGERS:
+        if _word_in(phrase, trig):
+            return True
+
+    # Even without "meat", certain words clearly assert an animal
+    # being used as food. Listing them lets us catch e.g. "rat" alone.
+    SOLO_ANIMAL_NAMES = {
+        # Pets
+        "cat", "cats", "kitten", "kittens", "dog", "dogs", "puppy", "puppies",
+        # Rodents
+        "rat", "rats", "mouse", "mice", "rodent", "rodents",
+        "squirrel", "chipmunk", "porcupine", "muskrat",
+        # Reptiles & amphibians
+        "snake", "cobra", "viper", "python",
+        "frog", "frogs", "frog legs", "toad",
+        "lizard", "iguana", "gecko",
+        "crocodile", "alligator", "turtle", "tortoise",
+        # Birds (exotic / non-typical)
+        "eagle", "hawk", "falcon", "owl", "vulture",
+        "peacock", "swan", "flamingo", "ostrich", "emu",
+        "parrot", "budgie", "canary",
+        # Wild mammals
+        "tiger", "lion", "leopard", "cheetah", "panther",
+        "elephant", "rhino", "rhinoceros", "hippopotamus", "hippo",
+        "pangolin", "shark", "whale", "dolphin", "porpoise",
+        "monkey", "ape", "gorilla", "chimpanzee", "orangutan",
+        "bear", "wolf", "fox", "jackal", "hyena",
+        "deer", "antelope", "gazelle", "zebra", "giraffe",
+        "horse", "donkey", "mule",
+        "bat", "bats",
+        # Insects
+        "cockroach", "cockroaches", "ant", "ants",
+        "spider", "scorpion", "centipede", "millipede",
+        "worm", "earthworm", "maggot", "maggots",
+        "cricket", "crickets", "grasshopper", "locust",
+        # Human
+        "human", "baby", "infant", "child",
+    }
+    for name in SOLO_ANIMAL_NAMES:
+        if _word_in(phrase, name):
+            return True
+
+    return False
+
+
+def _matches_allowed_protein(phrase: str) -> bool:
+    """Return True if the phrase contains a recognised allowed protein."""
+    for allowed in ALLOWED_PROTEINS:
+        if _word_in(phrase, allowed):
+            return True
+    return False
+
+
 def _word_in(text: str, term: str) -> bool:
-    """Return True if `term` appears as a whole word/phrase in `text`."""
+    """Whole-word/phrase match using regex word boundaries."""
     pattern = r"\b" + re.escape(term) + r"\b"
     return bool(re.search(pattern, text))
+
+
+def _dedupe(items: list) -> list:
+    """Remove duplicates and substring-of duplicates, keeping longest."""
+    items = list(set(items))
+    items.sort(key=len, reverse=True)
+    kept = []
+    for it in items:
+        if not any(it != k and it in k for k in kept):
+            kept.append(it)
+    return kept
