@@ -9,7 +9,7 @@ from PIL import Image
 from recipe_engine import generate_recipe, generate_recipe_from_image, recipe_to_text
 from usda_nutrition import calculate_recipe_nutrition, format_nutrition_source_note
 from i18n import t, get_lang, inject_rtl_css, inject_ltr_css
-
+from seasonal import in_season, month_name
 # ─────────────────────────────────────────────
 # PAGE CONFIG — must be first Streamlit call
 # ─────────────────────────────────────────────
